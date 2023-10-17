@@ -57,6 +57,66 @@ public class GameManager : MonoBehaviour
     {
         if (hasGameFinished) return;
 
+        #region Android
+
+        if (Input.touches.Length > 0)
+        {
+            if (Input.touches[0].phase == TouchPhase.Moved)
+            {
+                Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector2 mousePos2D = new Vector2(mousePos.x, mousePos.y);
+                RaycastHit2D hit = Physics2D.Raycast(mousePos2D, Vector2.zero);
+                if (!hit) return;
+                startPoint = hit.collider.gameObject.GetComponent<Point>();
+                _highlight.gameObject.SetActive(true);
+                _highlight.positionCount = 2;
+                _highlight.SetPosition(0, startPoint.Position);
+                _highlight.SetPosition(1, startPoint.Position);
+            }
+            
+            else if (Input.touches[0].phase == TouchPhase.Moved && startPoint != null)
+            {
+                Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector2 mousePos2D = new Vector2(mousePos.x, mousePos.y);
+                RaycastHit2D hit = Physics2D.Raycast(mousePos2D, Vector2.zero);
+                if (hit)
+                {
+                    endPoint = hit.collider.gameObject.GetComponent<Point>();
+                }
+                _highlight.SetPosition(1, mousePos2D);
+                if (startPoint == endPoint || endPoint == null) return;
+                if (IsStartAdd())
+                {
+                    currentId = endPoint.Id;
+                    edges[new Vector2Int(startPoint.Id, endPoint.Id)].Add();
+                    startPoint = endPoint;
+                    _highlight.SetPosition(0, startPoint.Position);
+                    _highlight.SetPosition(1, startPoint.Position);
+                }
+                else if (IsEndAdd())
+                {
+                    currentId = endPoint.Id;
+                    edges[new Vector2Int(startPoint.Id, endPoint.Id)].Add();
+                    CheckWin();
+                    startPoint = endPoint;
+                    _highlight.SetPosition(0, startPoint.Position);
+                    _highlight.SetPosition(1, startPoint.Position);
+                }
+            }
+            
+            else if (Input.touches[0].phase == TouchPhase.Ended)
+            {
+                _highlight.gameObject.SetActive(false);
+                startPoint = null;
+                endPoint = null;
+                CheckWin();
+            }
+        }
+
+        #endregion
+        
+        #region PC
+        
         if (Input.GetMouseButtonDown(0))
         {
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -105,6 +165,8 @@ public class GameManager : MonoBehaviour
             endPoint = null;
             CheckWin();
         }
+        
+        #endregion
     }
 
     private bool IsStartAdd()
@@ -149,6 +211,7 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator GameFinished()
     {
+        AudioManager.instance.Play("Win");
         yield return new WaitForSeconds(2f);
         UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
